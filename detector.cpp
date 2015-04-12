@@ -1,6 +1,7 @@
 #include "detector.hpp"
 
-struct cmp //for sorting diminishingly
+//for sorting diminishingly
+struct cmp
 {
     bool operator()(cv::Rect a, cv::Rect b)
     {
@@ -14,6 +15,12 @@ Detector::Detector()
 		throw std::runtime_error(STR_NO_FACE_CASC);
 	if(!eye_cascade.load(HAAR_EYE_PATH))
 		throw std::runtime_error(STR_NO_EYE_CASC);
+}
+
+inline cv::Size Detector::minFaceSize(int cols, int rows)
+{
+	return cv::Size(std::min(cols / HAAR_FACE_SEARCH_DIV, HAAR_MIN_FACE_SIZE),
+					std::min(rows / HAAR_FACE_SEARCH_DIV, HAAR_MIN_FACE_SIZE));
 }
 
 //reads image from file
@@ -34,7 +41,7 @@ bool Detector::fetchFace()
 {
 	std::vector <cv::Rect> faces, eyes;
 	face_cascade.detectMultiScale(image, faces, HAAR_SCALE_FAC_PIC, 
-		HAAR_MIN_NEIGH_PIC, HAAR_FLAGS_PIC, cv::Size(image.cols / HAAR_FACE_SEARCH_DIV, image.rows / HAAR_FACE_SEARCH_DIV));
+		HAAR_MIN_NEIGH_PIC, HAAR_FLAGS_PIC, minFaceSize(image.cols, image.rows));
 
 	//in case we found a face now we need to find the eyes
 	if(!faces.empty())
