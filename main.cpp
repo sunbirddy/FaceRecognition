@@ -1,7 +1,4 @@
 #include "main.hpp"
-#include "facedata.hpp"
-#include "detector.hpp"
-#include "normalizator.hpp"
 
 //shows image in a new window
 void showAndSaveImage(cv::Mat image)
@@ -14,7 +11,7 @@ void showAndSaveImage(cv::Mat image)
 }
 
 //reads image from file
-//TODO: for path = "-c" it reads image from webcam
+//for path = "-c" it reads image from webcam
 cv::Mat getImage(std::string path)
 {
 	cv::Mat image = cv::imread(path, CV_LOAD_IMAGE_GRAYSCALE);
@@ -23,6 +20,39 @@ cv::Mat getImage(std::string path)
 	return image;
 }
 
+//opens webcam window and enables real-time face and eyes search + normalization
+//in another window
+void runCamera(Detector * det, Normalizator * norm)
+{
+	cv::namedWindow(STR_CAM_WINDOW_TITLE, cv::WINDOW_NORMAL); //webcam window
+	cv::namedWindow(STR_NORMALIZATION_SUCCESS, cv::WINDOW_AUTOSIZE); //output window
+	cv::VideoCapture capture(CV_CAP_ANY);
+	if(!capture.isOpened())
+		throw std::runtime_error(STR_CAM_CLOSED);
+			cv::Mat frame;
+	int i = 0;
+	while(++i)
+	{
+		if(!capture.read(frame))
+			throw std::runtime_error(STR_CAM_READ_FAILURE);
+		cv::imshow(STR_CAM_WINDOW_TITLE, frame);
+		std::cout << "frames processed: " << i << "; press ESC to exit\n";
+		if(cv::waitKey(MAX_WAIT_TIME_CAM) == ESC_KEY) //wait for ESCAPE key press for 30ms
+            break;
+        cv::cvtColor(frame, frame, CV_RGB2GRAY); //conversion to greyscale
+        try
+        {
+        	cv::imshow(STR_NORMALIZATION_SUCCESS, norm->normalize((det->fetchFaceAndEyes(frame))));
+        }
+        catch(std::exception& e)
+		{
+			std::cerr << e.what();
+			if(!strcmp(e.what(), STR_FACE_NFOUND) || !strcmp(e.what(), STR_EYES_NFOUND))
+				continue;
+			return;
+		}
+	}
+}
 
 int main(int argc, const char * argv[])
 {
@@ -54,8 +84,16 @@ int main(int argc, const char * argv[])
 
 	if(argument == webcamFlag) //running camera window
 	{
-		//TODO:
-		//det.runCamera();
+		det.setArguments(ARGS_CAM); //adjusting settings for webcam capture search
+		try
+		{
+			runCamera(&det, &norm);
+		}
+		catch(std::exception& e)
+		{
+			std::cerr << e.what();
+			return -1;
+		}
 		return 0;
 	}
 

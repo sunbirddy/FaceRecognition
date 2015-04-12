@@ -17,6 +17,23 @@ void Detector::init()
 		throw std::runtime_error(STR_NO_EYE_CASC);
 }
 
+//additional function allows us to change the arguments manually
+void Detector::setArgumentsMan(float scaleFac_, int minNeigh_, int flags_)
+{
+	scaleFac = scaleFac_;
+	minNeigh = minNeigh_;
+	flags = flags_;
+}
+
+//sets the arguments for single-image search or real-time webcam search
+void Detector::setArguments(int flag_)
+{
+	if(flag_ == ARGS_PIC)
+		setArgumentsMan(HAAR_SCALE_FAC_PIC, HAAR_MIN_NEIGH_PIC, HAAR_FLAGS_PIC);
+	if(flag_ == ARGS_CAM)
+		setArgumentsMan(HAAR_SCALE_FAC_CAM, HAAR_MIN_NEIGH_CAM, HAAR_FLAGS_CAM);
+}
+
 //returns the presumed minimal size of a face to search for
 inline cv::Size Detector::minFaceSize(int cols, int rows)
 {
@@ -28,8 +45,7 @@ inline cv::Size Detector::minFaceSize(int cols, int rows)
 FaceData Detector::fetchFaceAndEyes(cv::Mat image)
 {
 	std::vector <cv::Rect> faces, eyes, eyeCandidates;
-	face_cascade.detectMultiScale(image, faces, HAAR_SCALE_FAC_PIC, 
-		HAAR_MIN_NEIGH_PIC, HAAR_FLAGS_PIC, minFaceSize(image.cols, image.rows));
+	face_cascade.detectMultiScale(image, faces, scaleFac, minNeigh, flags, minFaceSize(image.cols, image.rows));
 
 	//in case we found a face now we need to find the eyes
 	if(!faces.empty())
@@ -44,8 +60,8 @@ FaceData Detector::fetchFaceAndEyes(cv::Mat image)
 		cv::Mat face = image(biggestFace);
 
 		//searching for eyes
-		eye_cascade.detectMultiScale(face, eyeCandidates, HAAR_SCALE_FAC_PIC, 
-			HAAR_MIN_NEIGH_PIC, HAAR_FLAGS_PIC, cv::Size(face.cols / HAAR_EYE_SEARCH_DIV, face.rows / HAAR_EYE_SEARCH_DIV));
+		eye_cascade.detectMultiScale(face, eyeCandidates, scaleFac, minNeigh, flags, 
+			cv::Size(face.cols / HAAR_EYE_SEARCH_DIV, face.rows / HAAR_EYE_SEARCH_DIV));
 
 		//now we should send to the normalizator a little more than the rectangle that contains face, because after
 		//rotation (e.g. 45 degrees) we might lose a lot of the face in order for the image to remain rectangular

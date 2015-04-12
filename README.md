@@ -5,7 +5,9 @@ FaceRecognition is an unfortunatelly picked name, since this program only detect
 (puts eyeline horizontally and resizes it to 100x100)
 
 usage: make && ./main <filepath>
-or ./main -c for real-time webcam stream as a source (not implemented yet)
+or ./main -c for real-time webcam stream as a source
+
+to exit from live camera feed, press escape
 
 compiled with: make
 
