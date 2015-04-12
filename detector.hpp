@@ -38,7 +38,7 @@ class Detector
 	private:
 		cv::CascadeClassifier face_cascade, eye_cascade;
 	public:
-		Detector();
+		void init();
 		inline cv::Size minFaceSize(int cols, int rows);
 		FaceData fetchFaceAndEyes(cv::Mat image);
 		//void runCamera(); TODO

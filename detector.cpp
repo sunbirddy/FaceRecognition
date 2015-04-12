@@ -9,7 +9,7 @@ struct cmp
     }
 };
 
-Detector::Detector()
+void Detector::init()
 {
 	if(!face_cascade.load(HAAR_FACE_PATH))
 		throw std::runtime_error(STR_NO_FACE_CASC);

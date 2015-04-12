@@ -29,7 +29,7 @@ int main(int argc, const char * argv[])
 	Detector det;
 	try 
 	{
-		det = Detector();
+		det.init();
 	}
 	catch(std::exception& e)
 	{
