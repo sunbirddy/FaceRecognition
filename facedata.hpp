@@ -3,7 +3,6 @@
 
 #include "opencv2/core/core.hpp"
 
-
 //struct is being used to send data between components, notably detector > main > normalizator
 struct FaceData
 {

@@ -4,7 +4,6 @@
 #include "facedata.hpp"
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
-#include <iostream>
 
 #define STR_NORMALIZATION_SUCCESS "Face found!"
 #define NORMALIZED_WIDTH 100
