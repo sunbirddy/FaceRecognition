@@ -25,7 +25,7 @@ inline cv::Size Detector::minFaceSize(int cols, int rows)
 }
 
 //finds faces and eyes in the given image
-FaceData Detector::fetchFace(cv::Mat image)
+FaceData Detector::fetchFaceAndEyes(cv::Mat image)
 {
 	std::vector <cv::Rect> faces, eyes;
 	face_cascade.detectMultiScale(image, faces, HAAR_SCALE_FAC_PIC, 
@@ -111,7 +111,7 @@ FaceData Detector::fetchFace(cv::Mat image)
 					break;
 				}
 			}
-			
+
 			if(eye2.x == 0. && eye2.y == 0.) //second eye not found
 				throw std::runtime_error(STR_EYES_NFOUND);
 

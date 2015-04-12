@@ -61,7 +61,7 @@ int main(int argc, const char * argv[])
 	try
 	{
 		data.image = getImage(argument);
-		data = det.fetchFace(data.image);
+		data = det.fetchFaceAndEyes(data.image);
 		showAndSaveImage(norm.normalize(data));
 	}
 	catch(std::exception& e)

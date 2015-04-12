@@ -40,7 +40,7 @@ class Detector
 	public:
 		Detector();
 		inline cv::Size minFaceSize(int cols, int rows);
-		FaceData fetchFace(cv::Mat image);
+		FaceData fetchFaceAndEyes(cv::Mat image);
 		//void runCamera(); TODO
 };
 
