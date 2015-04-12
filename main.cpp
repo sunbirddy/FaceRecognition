@@ -27,6 +27,8 @@ cv::Mat getImage(std::string path)
 int main(int argc, const char * argv[])
 {
 	Detector det;
+	//DO NOT put any code in here!
+	//the detector must be properly initialized before performing any actions on it
 	try 
 	{
 		det.init();
