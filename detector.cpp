@@ -24,21 +24,8 @@ inline cv::Size Detector::minFaceSize(int cols, int rows)
 					std::min(rows / HAAR_FACE_SEARCH_DIV, HAAR_MIN_FACE_SIZE));
 }
 
-//reads image from file
-//TODO: add reading images from webcam
-bool Detector::getImage(std::string path)
-{
-	image = cv::imread(path, CV_LOAD_IMAGE_GRAYSCALE);
-	if(!image.data)
-	{
-		std::cerr << STR_READ_FAILURE;
-		return false;
-	}
-	return true;
-}
-
 //finds faces and eyes in the given image
-bool Detector::fetchFace()
+FaceData Detector::fetchFace(cv::Mat image)
 {
 	std::vector <cv::Rect> faces, eyes;
 	face_cascade.detectMultiScale(image, faces, HAAR_SCALE_FAC_PIC, 
@@ -112,49 +99,36 @@ bool Detector::fetchFace()
 				std::cout << eyes[0].area() << " " << eyes[1].area() << " " << eyes[2].area() << " " << eyes[eyes.size()-1].area() << "\n";
 			#endif
 
-			cv::Point2f leye = cv::Point2f((float) eyes[0].x + eyes[0].width / 2, (float) eyes[0].y + eyes[0].height / 2); //middle of the first eye
-			cv::Point2f reye = cv::Point2f(0., 0.);
+			cv::Point2f eye1 = cv::Point2f((float) eyes[0].x + eyes[0].width / 2, (float) eyes[0].y + eyes[0].height / 2); //middle of the first eye
+			cv::Point2f eye2 = cv::Point2f(0., 0.);
 
 			//searchig for the other eye (should be on the other half of the face)
 			for(int i = 1; i < eyes.size(); i++)
+			{
 				if((eyes[i].x - image.cols / 2) * (eyes[0].x - image.cols / 2) < 0) //checking if the eyes are on opposite sides
 				{
-					reye = cv::Point2f((float) eyes[i].x + eyes[i].width / 2, (float) eyes[i].y + eyes[i].height / 2); //middle of the second eye
+					eye2 = cv::Point2f((float) eyes[i].x + eyes[i].width / 2, (float) eyes[i].y + eyes[i].height / 2); //middle of the second eye
 					break;
 				}
-
-			if(reye.x == 0. && reye.y == 0.) //second eye not found
-			{
-				std::cerr << STR_EYES_NFOUND;
-				return false;
 			}
+			
+			if(eye2.x == 0. && eye2.y == 0.) //second eye not found
+				throw std::runtime_error(STR_EYES_NFOUND);
 
-			Normalizator norm = Normalizator(image, leye, reye, oldWidth, oldHeight);
-			norm.normalize();
-			norm.showNormalizedImage();
+			return FaceData(image, eye1, eye2, oldWidth, oldHeight);
 		}
 		else
-		{	
-			std::cerr << STR_EYES_NFOUND;
-			return false;
-		}
+			throw std::runtime_error(STR_EYES_NFOUND);
 
-		return true;
 	}
 
-	std::cerr << STR_FACE_NFOUND;
-	return false;	
+	throw std::runtime_error(STR_FACE_NFOUND);
 }
 
-//opens webcam window and finds the face on a real-time basis
+/*TODO: opens webcam window and finds the face on a real-time basis
 void Detector::runCamera()
 {
 	cv::namedWindow("Camera_Output", 1);    //Create window
     //cv::Capture capture = cv::captureFromCAM(CV_CAP_ANY);
 }
-
-//returns false if detector is good to go, otherwise returns true
-bool Detector::isFaulty()
-{
-	return face_cascade.empty() || eye_cascade.empty();
-}
+*/

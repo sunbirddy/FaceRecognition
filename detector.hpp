@@ -1,16 +1,20 @@
 #ifndef DETECTOR_HPP
 #define DETECTOR_HPP
 
+//#define DEBUG
 #include "normalizator.hpp"
+#include "facedata.hpp"
 #include <stdexcept>
 #include <algorithm>
 #include <vector>
-#include <iostream>
-#include <string>
 #include <cmath>
 #include "opencv2/core/core.hpp"
 #include "opencv2/contrib/contrib.hpp"
 #include "opencv2/objdetect/objdetect.hpp"
+#ifdef DEBUG
+	#include <iostream>
+	#include "opencv2/highgui/highgui.hpp"
+#endif
 
 #define HAAR_FACE_PATH "cascades/haarcascade_frontalface_alt.xml"
 #define HAAR_EYE_PATH "cascades/haarcascade_eye.xml"
@@ -33,14 +37,11 @@ class Detector
 {
 	private:
 		cv::CascadeClassifier face_cascade, eye_cascade;
-		cv::Mat image;
 	public:
 		Detector();
 		inline cv::Size minFaceSize(int cols, int rows);
-		bool getImage(std::string path);
-		bool fetchFace();
-		void runCamera();
-		bool isFaulty();
+		FaceData fetchFace(cv::Mat image);
+		//void runCamera(); TODO
 };
 
 #endif

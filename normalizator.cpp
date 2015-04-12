@@ -1,46 +1,25 @@
 #include "normalizator.hpp"
 
-Normalizator::Normalizator(cv::Mat image, cv::Point2f eye1, cv::Point2f eye2, int oldWidth, int oldHeight)
+//normalizes the face, that is rescales the image to NORMALIZED_WIDTH x NORMALIZED_HEIGHT and
+//puts eyes in (25,25), (75, 25)
+cv::Mat Normalizator::normalize(FaceData data)
 {
-	cv::namedWindow(STR_NORMALIZATION_SUCCESS, cv::WINDOW_AUTOSIZE);
-	face = image;
-	leye = eye1;
-	reye = eye2;
-	faceWidth = oldWidth;
-	faceHeight = oldHeight;
-	if(leye.x > reye.x)
-	{
-		cv::Point swapper = leye;
-		leye = reye;
-		reye = swapper;
-	}
-}
+	cv::Mat face = data.image;
+	//data.leye = data.data.leye;
+	//data.reye = data.data.reye;
+	//data.faceWidth = data.data.faceWidth;
+	//data.faceHeight = data.data.faceHeight;
 
-//shows the normalized face in a new window
-void Normalizator::showNormalizedImage()
-{
-    cv::imshow(STR_NORMALIZATION_SUCCESS, face);
-    cv::waitKey(MAX_WAIT_TIME);
-    cv::destroyAllWindows();
-}
-
-void Normalizator::showNormalizedWebcam()
-{
-
-}
-
-void Normalizator::normalize()
-{
 	cv::Point2f center = cv::Point2f((float) face.cols / 2, (float) face.rows / 2);
 	
-	double angle = atan2((double) (leye.y - reye.y), (double) (leye.x - reye.x)) - PI;
+	double angle = atan2((double) (data.leye.y - data.reye.y), (double) (data.leye.x - data.reye.x)) - CV_PI;
 	angle *= (double) (180 / CV_PI); //converting radians into degrees
 	//rotation
 	cv::Mat trans = cv::getRotationMatrix2D(center, angle, 1.0);
 	cv::warpAffine(face, face, trans, cv::Size(face.cols, face.rows));
 	
 	//cropping image based on the old face coordinates
-	face = face(cv::Rect(center.x - faceWidth / 2, center.y - faceHeight / 2, faceWidth, faceHeight)).clone();
+	face = face(cv::Rect(center.x - data.faceWidth / 2, center.y - data.faceHeight / 2, data.faceWidth, data.faceHeight)).clone();
 	cv::resize(face, face, cv::Size(NORMALIZED_WIDTH, NORMALIZED_HEIGHT));
-	cv::imwrite("face.jpg", face);
+	return face;
 }

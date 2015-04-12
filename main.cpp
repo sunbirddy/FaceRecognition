@@ -1,5 +1,28 @@
 #include "main.hpp"
+#include "facedata.hpp"
 #include "detector.hpp"
+#include "normalizator.hpp"
+
+//shows image in a new window
+void showAndSaveImage(cv::Mat image)
+{
+	cv::imwrite(SAVING_PATH, image);
+	cv::namedWindow(STR_NORMALIZATION_SUCCESS, cv::WINDOW_AUTOSIZE);
+    cv::imshow(STR_NORMALIZATION_SUCCESS, image);
+    cv::waitKey(MAX_WAIT_TIME);
+    cv::destroyAllWindows();
+}
+
+//reads image from file
+//TODO: for path = "-c" it reads image from webcam
+cv::Mat getImage(std::string path)
+{
+	cv::Mat image = cv::imread(path, CV_LOAD_IMAGE_GRAYSCALE);
+	if(!image.data)
+		throw std::runtime_error(STR_READ_FAILURE);
+	return image;
+}
+
 
 int main(int argc, const char * argv[])
 {
@@ -14,12 +37,11 @@ int main(int argc, const char * argv[])
 		return -1;
 	}
 
-	//Normalizator norm = Normalizator();
+	Normalizator norm = Normalizator();
+	FaceData data; //buffer used to send data from detector to normalizator
+
 	std::string webcamFlag = "-c";
 
-	if(det.isFaulty()) //checking if we managed to load the cascades
-		return 0;
-	
 	if(argc < 2) //too little arguments
 	{
 		std::cerr << STR_USAGE_INSTRUCTION;
@@ -30,17 +52,23 @@ int main(int argc, const char * argv[])
 
 	if(argument == webcamFlag) //running camera window
 	{
-		det.runCamera();
+		//TODO:
+		//det.runCamera();
 		return 0;
 	}
 
-
 	//processing a single image
-	if(!det.getImage(argument))
+	try
+	{
+		data.image = getImage(argument);
+		data = det.fetchFace(data.image);
+		showAndSaveImage(norm.normalize(data));
+	}
+	catch(std::exception& e)
+	{
+		std::cerr << e.what();
 		return -1;
-
-	if(!det.fetchFace())
-		return -1;
+	}
 
 	return 0;
 }
