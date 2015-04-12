@@ -76,15 +76,16 @@ bool Detector::fetchFace()
 
 		//now we can get rid of the rest of the image since face is all we need
 		image = image(cv::Rect(biggestFace.x, biggestFace.y, biggestFace.width, biggestFace.height)).clone();
-		
+
 		for(int i = 0; i < eyes.size(); i++)
 		{
 			//if we found an eye in the bottom part of the face - theyre probably not eyes
-			if(eyes[i].y >= image.cols / 2 || eyes[i].x >= image.rows / 2)
+			if(eyes[i].y >= image.rows / 2)
 			{
 				//removing the eye
 				std::swap(eyes[i], eyes[eyes.size() - 1]);
 				eyes.pop_back();
+				i--;
 			}
 
 			//need to adjust the eyes' position to the bigger ROI
@@ -110,9 +111,24 @@ bool Detector::fetchFace()
 			#ifdef DEBUG
 				std::cout << eyes[0].area() << " " << eyes[1].area() << " " << eyes[2].area() << " " << eyes[eyes.size()-1].area() << "\n";
 			#endif
-			cv::Point2f leye = cv::Point2f((float) eyes[0].x + eyes[0].width / 2, (float) eyes[0].y + eyes[0].height / 2); //middle of the left...
-			cv::Point2f reye = cv::Point2f((float) eyes[1].x + eyes[1].width / 2, (float) eyes[1].y + eyes[1].height / 2); //...and the right eye
-			
+
+			cv::Point2f leye = cv::Point2f((float) eyes[0].x + eyes[0].width / 2, (float) eyes[0].y + eyes[0].height / 2); //middle of the first eye
+			cv::Point2f reye = cv::Point2f(0., 0.);
+
+			//searchig for the other eye (should be on the other half of the face)
+			for(int i = 1; i < eyes.size(); i++)
+				if((eyes[i].x - image.cols / 2) * (eyes[0].x - image.cols / 2) < 0) //checking if the eyes are on opposite sides
+				{
+					reye = cv::Point2f((float) eyes[i].x + eyes[i].width / 2, (float) eyes[i].y + eyes[i].height / 2); //middle of the second eye
+					break;
+				}
+
+			if(reye.x == 0. && reye.y == 0.) //second eye not found
+			{
+				std::cerr << STR_EYES_NFOUND;
+				return false;
+			}
+
 			Normalizator norm = Normalizator(image, leye, reye, oldWidth, oldHeight);
 			norm.normalize();
 			norm.showNormalizedImage();
