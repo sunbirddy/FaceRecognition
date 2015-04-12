@@ -6,7 +6,6 @@
 #include "opencv2/imgproc/imgproc.hpp"
 
 #define PI 3.1416
-#define STR_USAGE_INSTRUCTION "Usage: ./main <imagepath>"
 #define STR_NORMALIZATION_SUCCESS "Face found!"
 #define NORMALIZED_WIDTH 100
 #define NORMALIZED_HEIGHT 100

@@ -29,12 +29,13 @@ void Normalizator::normalize()
 	cv::Point2f center = cv::Point2f((float) face.cols / 2, (float) face.rows / 2);
 	
 	double angle = (double) (leye.y - reye.y) / (leye.x - reye.x);
-	angle *= (double) (180 / PI); //conversion from radians into degrees
+	angle *= (double) (180 / PI); //converting radians into degrees
+	
 	//rotation
 	cv::Mat trans = cv::getRotationMatrix2D(center, angle, 1.0);
 	cv::warpAffine(face, face, trans, cv::Size(face.cols, face.rows));
 	
-	//cropping image base on the old face coordinates
+	//cropping image based on the old face coordinates
 	face = face(cv::Rect(center.x - faceWidth / 2, center.y - faceHeight / 2, faceWidth, faceHeight)).clone();
 	cv::resize(face, face, cv::Size(NORMALIZED_WIDTH, NORMALIZED_HEIGHT));
 	cv::imwrite("face.jpg", face);
