@@ -5,10 +5,6 @@
 cv::Mat Normalizator::normalize(FaceData data)
 {
 	cv::Mat face = data.image;
-	//data.leye = data.data.leye;
-	//data.reye = data.data.reye;
-	//data.faceWidth = data.data.faceWidth;
-	//data.faceHeight = data.data.faceHeight;
 
 	cv::Point2f center = cv::Point2f((float) face.cols / 2, (float) face.rows / 2);
 	

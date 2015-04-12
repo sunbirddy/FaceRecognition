@@ -42,11 +42,12 @@ void runCamera(Detector * det, Normalizator * norm)
         cv::cvtColor(frame, frame, CV_RGB2GRAY); //conversion to greyscale
         try
         {
-        	cv::imshow(STR_NORMALIZATION_SUCCESS, norm->normalize((det->fetchFaceAndEyes(frame))));
+        	cv::imshow(STR_NORMALIZATION_SUCCESS, norm->normalize((det->fetchFaceAndEyes(frame)))); //outputs the normalized face
         }
         catch(std::exception& e)
 		{
 			std::cerr << e.what();
+			//we do not want our program to stop after a single frame it has not found face in, do we?
 			if(!strcmp(e.what(), STR_FACE_NFOUND) || !strcmp(e.what(), STR_EYES_NFOUND))
 				continue;
 			return;
