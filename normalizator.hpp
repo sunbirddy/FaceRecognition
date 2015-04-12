@@ -19,7 +19,8 @@ class Normalizator
 		int faceWidth, faceHeight;
 	public:
 		Normalizator(cv::Mat image, cv::Point2f leye, cv::Point2f reye, int oldWidth, int oldHeight);
-		void showNormalizedFace();
+		void showNormalizedImage();
+		void showNormalizedWebcam();
 		void normalize();
 };
 

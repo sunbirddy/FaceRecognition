@@ -2,16 +2,23 @@
 #define DETECTOR_HPP
 
 #include "normalizator.hpp"
+#include <stdexcept>
+#include <algorithm>
 #include <vector>
-#include <cstdio>
+#include <iostream>
+#include <string>
 #include <cmath>
 #include "opencv2/core/core.hpp"
 #include "opencv2/contrib/contrib.hpp"
 #include "opencv2/objdetect/objdetect.hpp"
 
-#define STR_READ_FAILURE "Could not read the image"
-#define STR_FACE_NFOUND "No face found in the picture"
-#define STR_EYES_NFOUND "No eyes found in the face"
+#define HAAR_FACE_PATH "cascades/haarcascade_frontalface_alt.xml"
+#define HAAR_EYE_PATH "cascades/haarcascade_eye.xml"
+#define STR_NO_FACE_CASC "Could not load cascade file for face\n"
+#define STR_NO_EYE_CASC "Could not load cascade file for eyes\n"
+#define STR_READ_FAILURE "Could not read the image\n"
+#define STR_FACE_NFOUND "No face found in the picture\n"
+#define STR_EYES_NFOUND "No eyes found in the face\n"
 #define HAAR_MIN_FACE_SIZE 10
 #define HAAR_MIN_EYE_SIZE 5
 #define HAAR_SCALE_FAC_PIC 1.1
@@ -25,12 +32,12 @@ class Detector
 {
 	private:
 		cv::CascadeClassifier face_cascade, eye_cascade;
-		std::vector <cv::Rect> faces, eyes;
 		cv::Mat image;
 	public:
 		Detector();
-		bool getImage(char * path);
+		bool getImage(std::string path);
 		bool fetchFace();
+		void runCamera();
 		bool isFaulty();
 };
 

@@ -1,20 +1,42 @@
 #include "main.hpp"
 #include "detector.hpp"
 
-int main(int argc, char * argv[])
+int main(int argc, const char * argv[])
 {
-	Detector det = Detector();
-	
+	Detector det;
+	try 
+	{
+		det = Detector();
+	}
+	catch(std::exception& e)
+	{
+		std::cerr << e.what();
+		return -1;
+	}
+
+	//Normalizator norm = Normalizator();
+	std::string webcamFlag = "-c";
+
 	if(det.isFaulty()) //checking if we managed to load the cascades
 		return 0;
 	
-	if(argc < 2)
+	if(argc < 2) //too little arguments
 	{
-		puts(STR_USAGE_INSTRUCTION);
+		std::cerr << STR_USAGE_INSTRUCTION;
+		return -1;
+	}
+
+	std::string argument = argv[1];
+
+	if(argument == webcamFlag) //running camera window
+	{
+		det.runCamera();
 		return 0;
 	}
 
-	if(!det.getImage(argv[1]))
+
+	//processing a single image
+	if(!det.getImage(argument))
 		return -1;
 
 	if(!det.fetchFace())
