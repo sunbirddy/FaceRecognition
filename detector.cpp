@@ -1,12 +1,5 @@
 #include "detector.hpp"
 
-/*
-Detector::Detector(char* path)
-{
-	imgPath = path;
-}
-*/
-
 inline int min(int a, int b)
 {
 	return a < b ? a : b;
@@ -24,14 +17,19 @@ Detector::Detector()
 
 //reads image from file
 //TODO: add reading images from webcam
-bool Detector::getImage()
+bool Detector::getImage(char * path)
 {
-	image = cv::imread("image3.jpg", 0);
-	return image.data;
+	image = cv::imread(path, 0);
+	if(!image.data)
+	{
+		puts(STR_READ_FAILURE);
+		return false;
+	}
+	return true;
 }
 
 //finds faces and eyes in the given image
-void Detector::fetchFace()
+bool Detector::fetchFace()
 {
 	faces.clear();
 	eyes.clear();
@@ -59,7 +57,9 @@ void Detector::fetchFace()
 
 		//now we should send to the normalizator a little more than the rectangle that contains face, because after
 		//rotation (e.g. 45 degrees) we might lose a lot of the face in order for the image to remain rectangular
-		//thus, we calculate how much more do we need and add it to our face-rectangle
+		//thus, we calculate how much more do we need and add it to our face-rectangle (however keeping old width
+		//and height might be useful for rescaling the image in normalizer)
+		int oldWidth = biggestFace.width, oldHeight = biggestFace.height;
 		int diagonal = ceil(sqrt(biggestFace.width * biggestFace.width + biggestFace.height * biggestFace.height));
 		int diffWidth, diffHeight; //how much have we moved the x and y of biggest face (will be needed for adjusting eyes)
 		diffWidth = min((diagonal - biggestFace.width) / 2, biggestFace.x);
@@ -77,7 +77,7 @@ void Detector::fetchFace()
 			//need to adjust the eyes' position to the bigger ROI
 			eyes[i].x += diffWidth;
 			eyes[i].y += diffHeight;
-			rectangle(image, cv::Point(eyes[i].x, eyes[i].y), cv::Point(eyes[i].x + eyes[i].width, eyes[i].y + eyes[i].height), cv::Scalar(0));
+			//rectangle(image, cv::Point(eyes[i].x, eyes[i].y), cv::Point(eyes[i].x + eyes[i].width, eyes[i].y + eyes[i].height), cv::Scalar(0));
 		}
 
 		if(eyes.size() > 1) //we need at least two eyes
@@ -85,13 +85,23 @@ void Detector::fetchFace()
 			cv::Point2f leye = cv::Point2f((float) eyes[0].x + eyes[0].width / 2, (float) eyes[0].y + eyes[0].height / 2); //middle of the left...
 			cv::Point2f reye = cv::Point2f((float) eyes[1].x + eyes[1].width / 2, (float) eyes[1].y + eyes[1].height / 2); //...and the right eye
 
-			printf("%d %d %d %d\n%d %d %d %d\n", eyes[0].x, eyes[0].y, eyes[0].width, eyes[0].height, eyes[1].x, eyes[1].y, eyes[1].width, eyes[1].height);
-			printf("%f %f %f %f\n", leye.x, leye.y, reye.x, reye.y);
-			Normalizator norm = Normalizator(image, leye, reye);
+			//printf("%d %d %d %d\n%d %d %d %d\n", eyes[0].x, eyes[0].y, eyes[0].width, eyes[0].height, eyes[1].x, eyes[1].y, eyes[1].width, eyes[1].height);
+			//printf("%f %f %f %f\n", leye.x, leye.y, reye.x, reye.y);
+			Normalizator norm = Normalizator(image, leye, reye, oldWidth, oldHeight);
 			norm.normalize();
 			norm.showNormalizedFace();
 		}
+		else
+		{	
+			puts(STR_EYES_NFOUND);
+			return false;
+		}
+
+		return true;
 	}
+
+	puts(STR_FACE_NFOUND);
+	return false;	
 }
 
 //returns false if detector is good to go, otherwise returns true
