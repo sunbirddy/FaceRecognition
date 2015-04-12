@@ -1,5 +1,8 @@
 #!/bin/bash
-git add README.md gitupdate.sh Makefile
+git add README.md Makefile
 git add *.cpp *.hpp
+cd cascades
+git add *
+cd ..
 git commit
-git push origin master
+git push -f origin master
