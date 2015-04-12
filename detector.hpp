@@ -19,8 +19,8 @@
 #define STR_READ_FAILURE "Could not read the image\n"
 #define STR_FACE_NFOUND "No face found in the picture\n"
 #define STR_EYES_NFOUND "No eyes found in the face\n"
-#define HAAR_MIN_FACE_SIZE 10
-#define HAAR_MIN_EYE_SIZE 5
+#define HAAR_FACE_SEARCH_DIV 10
+#define HAAR_EYE_SEARCH_DIV 10
 #define HAAR_SCALE_FAC_PIC 1.1
 #define HAAR_MIN_NEIGH_PIC 3
 #define HAAR_FLAGS_PIC 0

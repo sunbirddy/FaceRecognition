@@ -1,5 +1,13 @@
 #include "detector.hpp"
 
+struct cmp //for sorting diminishingly
+{
+    bool operator()(cv::Rect a, cv::Rect b)
+    {
+        return a.area() > b.area();
+    }
+};
+
 Detector::Detector()
 {
 	if(!face_cascade.load(HAAR_FACE_PATH))
@@ -26,7 +34,7 @@ bool Detector::fetchFace()
 {
 	std::vector <cv::Rect> faces, eyes;
 	face_cascade.detectMultiScale(image, faces, HAAR_SCALE_FAC_PIC, 
-		HAAR_MIN_NEIGH_PIC, HAAR_FLAGS_PIC, cv::Size(HAAR_MIN_FACE_SIZE, HAAR_MIN_FACE_SIZE));
+		HAAR_MIN_NEIGH_PIC, HAAR_FLAGS_PIC, cv::Size(image.cols / HAAR_FACE_SEARCH_DIV, image.rows / HAAR_FACE_SEARCH_DIV));
 
 	//in case we found a face now we need to find the eyes
 	if(!faces.empty())
@@ -42,7 +50,7 @@ bool Detector::fetchFace()
 
 		//searching for eyes
 		eye_cascade.detectMultiScale(face, eyes, HAAR_SCALE_FAC_PIC, 
-			HAAR_MIN_NEIGH_PIC, HAAR_FLAGS_PIC, cv::Size(HAAR_MIN_EYE_SIZE, HAAR_MIN_EYE_SIZE));
+			HAAR_MIN_NEIGH_PIC, HAAR_FLAGS_PIC, cv::Size(face.cols / HAAR_EYE_SEARCH_DIV, face.rows / HAAR_EYE_SEARCH_DIV));
 
 		//now we should send to the normalizator a little more than the rectangle that contains face, because after
 		//rotation (e.g. 45 degrees) we might lose a lot of the face in order for the image to remain rectangular
@@ -66,10 +74,26 @@ bool Detector::fetchFace()
 			//need to adjust the eyes' position to the bigger ROI
 			eyes[i].x += diffWidth;
 			eyes[i].y += diffHeight;
+			#ifdef DEBUG
+				rectangle(image, cv::Point(eyes[i].x, eyes[i].y), cv::Point(eyes[i].x + eyes[i].width, eyes[i].y + eyes[i].height), cv::Scalar(0));
+			#endif
 		}
+		
+		#ifdef DEBUG
+			cv::namedWindow("dd", cv::WINDOW_NORMAL);
+	    	cv::imshow("dd", image);
+	   		cv::imwrite("face.jpg", image);
+    		cv::waitKey(0);
+    		cv::destroyAllWindows();
+    	#endif
 
-		if(eyes.size() > 1) //we need at least two eyes
+    	std::sort(eyes.begin(), eyes.end(), cmp()); //sorting diminishingly
+
+		if(eyes.size() > 1) //we need at least two eyes, take the two biggest ones
 		{
+			#ifdef DEBUG
+				std::cout << eyes[0].area() << " " << eyes[1].area() << " " << eyes[2].area() << " " << eyes[eyes.size()-1].area() << "\n";
+			#endif
 			cv::Point2f leye = cv::Point2f((float) eyes[0].x + eyes[0].width / 2, (float) eyes[0].y + eyes[0].height / 2); //middle of the left...
 			cv::Point2f reye = cv::Point2f((float) eyes[1].x + eyes[1].width / 2, (float) eyes[1].y + eyes[1].height / 2); //...and the right eye
 			
