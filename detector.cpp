@@ -27,7 +27,7 @@ inline cv::Size Detector::minFaceSize(int cols, int rows)
 //finds faces and eyes in the given image
 FaceData Detector::fetchFaceAndEyes(cv::Mat image)
 {
-	std::vector <cv::Rect> faces, eyes;
+	std::vector <cv::Rect> faces, eyes, eyeCandidates;
 	face_cascade.detectMultiScale(image, faces, HAAR_SCALE_FAC_PIC, 
 		HAAR_MIN_NEIGH_PIC, HAAR_FLAGS_PIC, minFaceSize(image.cols, image.rows));
 
@@ -44,7 +44,7 @@ FaceData Detector::fetchFaceAndEyes(cv::Mat image)
 		cv::Mat face = image(biggestFace);
 
 		//searching for eyes
-		eye_cascade.detectMultiScale(face, eyes, HAAR_SCALE_FAC_PIC, 
+		eye_cascade.detectMultiScale(face, eyeCandidates, HAAR_SCALE_FAC_PIC, 
 			HAAR_MIN_NEIGH_PIC, HAAR_FLAGS_PIC, cv::Size(face.cols / HAAR_EYE_SEARCH_DIV, face.rows / HAAR_EYE_SEARCH_DIV));
 
 		//now we should send to the normalizator a little more than the rectangle that contains face, because after
@@ -64,22 +64,20 @@ FaceData Detector::fetchFaceAndEyes(cv::Mat image)
 		//now we can get rid of the rest of the image since face is all we need
 		image = image(cv::Rect(biggestFace.x, biggestFace.y, biggestFace.width, biggestFace.height)).clone();
 
-		for(int i = 0; i < eyes.size(); i++)
+		for(int i = 0; i < eyeCandidates.size(); i++)
 		{
-			//if we found an eye in the bottom part of the face - theyre probably not eyes
-			if(eyes[i].y >= image.rows / 2)
-			{
-				//removing the eye
-				std::swap(eyes[i], eyes[eyes.size() - 1]);
-				eyes.pop_back();
-				i--;
-			}
-
 			//need to adjust the eyes' position to the bigger ROI
-			eyes[i].x += diffWidth;
-			eyes[i].y += diffHeight;
+			eyeCandidates[i].x += diffWidth;
+			eyeCandidates[i].y += diffHeight;
+
+			//if we found an eye in the bottom part of the face - theyre probably not eyes
+			if(eyeCandidates[i].y < image.rows / 2) //probably an actual eye
+				eyes.push_back(eyeCandidates[i]);
+
 			#ifdef DEBUG
-				rectangle(image, cv::Point(eyes[i].x, eyes[i].y), cv::Point(eyes[i].x + eyes[i].width, eyes[i].y + eyes[i].height), cv::Scalar(0));
+				rectangle(image, cv::Point(eyeCandidates[i].x, eyeCandidates[i].y), 
+						 cv::Point(eyeCandidates[i].x + eyeCandidates[i].width, eyeCandidates[i].y + eyeCandidates[i].height),
+						 cv::Scalar(0));
 			#endif
 		}
 		
