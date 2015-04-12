@@ -17,6 +17,7 @@ Detector::Detector()
 		throw std::runtime_error(STR_NO_EYE_CASC);
 }
 
+//returns the presumed minimal size of a face to search for
 inline cv::Size Detector::minFaceSize(int cols, int rows)
 {
 	return cv::Size(std::min(cols / HAAR_FACE_SEARCH_DIV, HAAR_MIN_FACE_SIZE),
@@ -75,9 +76,17 @@ bool Detector::fetchFace()
 
 		//now we can get rid of the rest of the image since face is all we need
 		image = image(cv::Rect(biggestFace.x, biggestFace.y, biggestFace.width, biggestFace.height)).clone();
-
+		
 		for(int i = 0; i < eyes.size(); i++)
 		{
+			//if we found an eye in the bottom part of the face - theyre probably not eyes
+			if(eyes[i].y >= image.cols / 2 || eyes[i].x >= image.rows / 2)
+			{
+				//removing the eye
+				std::swap(eyes[i], eyes[eyes.size() - 1]);
+				eyes.pop_back();
+			}
+
 			//need to adjust the eyes' position to the bigger ROI
 			eyes[i].x += diffWidth;
 			eyes[i].y += diffHeight;

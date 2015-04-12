@@ -21,7 +21,7 @@
 #define STR_EYES_NFOUND "No eyes found in the face\n"
 #define HAAR_MIN_FACE_SIZE 75
 #define HAAR_FACE_SEARCH_DIV 10
-#define HAAR_EYE_SEARCH_DIV 10
+#define HAAR_EYE_SEARCH_DIV 5
 #define HAAR_SCALE_FAC_PIC 1.1
 #define HAAR_MIN_NEIGH_PIC 3
 #define HAAR_FLAGS_PIC 0
