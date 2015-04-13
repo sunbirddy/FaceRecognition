@@ -2,7 +2,6 @@
 
 //normalizes the face, that is rescales the image to NORMALIZED_WIDTH x NORMALIZED_HEIGHT and
 //puts eyes in (25,25), (75, 25)
-#include <iostream>
 cv::Mat Normalizator::normalize(FaceData data)
 {
 	cv::Mat face = data.image;
