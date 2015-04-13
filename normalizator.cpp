@@ -9,7 +9,7 @@ cv::Mat Normalizator::normalize(FaceData data)
 	double angle = atan2((double) (data.leye.y - data.reye.y), (double) (data.leye.x - data.reye.x)) - CV_PI;
 	angle *= (double) (180 / CV_PI); //converting radians into degrees
 	//rotation
-	cv::Mat trans = cv::getRotationMatrix2D(data.faceCenter, angle, 1.0);
+	cv::Mat trans = cv::getRotationMatrix2D(data.leye, angle, 1.0);
 	cv::warpAffine(face, face, trans, cv::Size(face.cols, face.rows));
 	
 	//cropping image based on the old face coordinates

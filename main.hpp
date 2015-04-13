@@ -10,7 +10,7 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
 
-
+#define FLAG_CAM "-c"
 #define STR_USAGE_INSTRUCTION "Usage: ./main <filename> or ./main -c (for webcam)\n"
 #define STR_READ_FAILURE "Could not read the image\n"
 #define STR_CAM_CLOSED "Could not open the camera\n"

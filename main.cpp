@@ -75,7 +75,7 @@ int main(int argc, const char * argv[])
 	Normalizator norm = Normalizator();
 	FaceData data; //buffer used to send data from detector to normalizator
 
-	std::string webcamFlag = "-c";
+	std::string webcamFlag = FLAG_CAM;
 
 	if(argc < 2) //too little arguments
 	{
