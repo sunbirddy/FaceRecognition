@@ -69,11 +69,14 @@ FaceData Detector::fetchFaceAndEyes(cv::Mat image)
 		//and height might be useful for rescaling the image in normalizer)
 		int oldWidth = biggestFace.width, oldHeight = biggestFace.height;
 		int diagonal = ceil(sqrt(biggestFace.width * biggestFace.width + biggestFace.height * biggestFace.height));
+		cv::Point2f faceCenter = cv::Point2f(biggestFace.width / 2, biggestFace.height / 2); //center of the face
 		int diffWidth, diffHeight; //how much have we moved the x and y of biggest face (will be needed for adjusting eyes)
-		diffWidth = (diagonal - biggestFace.width) / 2;
-		diffHeight = (diagonal - biggestFace.height) / 2;
-		biggestFace.x = std::max(0, biggestFace.x - diffWidth); //we cannot allow ourselves to have the coordinates negative...
-		biggestFace.y = std::max(0, biggestFace.y - diffHeight);
+		diffWidth = std::min((diagonal - biggestFace.width) / 2, biggestFace.x); //we cannot allow ourselves to have the coordinates negative...
+		diffHeight = std::min((diagonal - biggestFace.height) / 2, biggestFace.y);
+		faceCenter.x += diffWidth; //need to adjust the face center position...
+		faceCenter.y += diffHeight;
+		biggestFace.x -= diffWidth; //...as well as the face as a whole
+		biggestFace.y -= diffHeight;
 		biggestFace.width = std::min(diagonal, image.cols); //...or bigger than the size of the image
 		biggestFace.height = std::min(diagonal, image.rows);
 
@@ -100,7 +103,7 @@ FaceData Detector::fetchFaceAndEyes(cv::Mat image)
 		#ifdef DEBUG
 			cv::namedWindow("dd", cv::WINDOW_NORMAL);
 	    	cv::imshow("dd", image);
-	   		cv::imwrite("face.jpg", image);
+	   		cv::imwrite("temp.jpg", image);
     		cv::waitKey(0);
     		cv::destroyAllWindows();
     	#endif
@@ -129,7 +132,11 @@ FaceData Detector::fetchFaceAndEyes(cv::Mat image)
 			if(eye2.x == 0. && eye2.y == 0.) //second eye not found
 				throw std::runtime_error(STR_EYES_NFOUND);
 
-			return FaceData(image, eye1, eye2, oldWidth, oldHeight);
+			#ifdef DEBUG
+				std::cout << "picture size: " << image.cols << "x" << image.rows << "; eye positions: (" << eye1.x << ", " << eye1.y << "); (" << eye2.x << ", " << eye2.y <<
+					"); old size: " << oldWidth << "x" << oldHeight << "; face center: (" << faceCenter.x << ", " << faceCenter.y << ")\n";
+			#endif
+			return FaceData(image, eye1, eye2, oldWidth, oldHeight, faceCenter);
 		}
 		else
 			throw std::runtime_error(STR_EYES_NFOUND);

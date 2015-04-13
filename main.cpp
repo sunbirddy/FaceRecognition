@@ -36,9 +36,11 @@ void runCamera(Detector * det, Normalizator * norm)
 		if(!capture.read(frame))
 			throw std::runtime_error(STR_CAM_READ_FAILURE);
 		cv::imshow(STR_CAM_WINDOW_TITLE, frame);
+		cv::imwrite(SAVING_PATH, frame);
 		std::cout << "frames processed: " << i << "; press ESC to exit\n";
 		if(cv::waitKey(MAX_WAIT_TIME_CAM) == ESC_KEY) //wait for ESCAPE key press for 30ms
-            break;
+            //break;
+            continue;
         cv::cvtColor(frame, frame, CV_RGB2GRAY); //conversion to greyscale
         try
         {
