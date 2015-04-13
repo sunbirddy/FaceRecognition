@@ -1,6 +1,7 @@
 #ifndef MAIN_HPP
 #define MAIN_HPP
 
+#define DEBUG
 #include "facedata.hpp"
 #include "detector.hpp"
 #include "normalizator.hpp"

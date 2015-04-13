@@ -1,5 +1,25 @@
 #include "main.hpp"
 
+#ifdef DEBUG
+		std::string intToStr(int n)
+		{
+     		std::string tmp, ret;
+     		if(n < 0) {
+      		ret = "-";
+      		n = -n;
+     	}
+     	do{
+      		tmp += n % 10 + 48;
+      		n -= n % 10;
+     	}
+     	while(n /= 10);
+     	for(int i = tmp.size()-1; i >= 0; i--)
+      		ret += tmp[i];
+     	return ret;
+	}
+#endif
+
+
 //shows image in a new window
 void showAndSaveImage(cv::Mat image)
 {
@@ -29,22 +49,27 @@ void runCamera(Detector * det, Normalizator * norm)
 	cv::VideoCapture capture(CV_CAP_ANY);
 	if(!capture.isOpened())
 		throw std::runtime_error(STR_CAM_CLOSED);
-			cv::Mat frame;
+	cv::Mat frame;
 	int i = 0;
 	while(++i)
 	{
 		if(!capture.read(frame))
 			throw std::runtime_error(STR_CAM_READ_FAILURE);
 		cv::imshow(STR_CAM_WINDOW_TITLE, frame);
-		cv::imwrite(SAVING_PATH, frame);
 		std::cout << "frames processed: " << i << "; press ESC to exit\n";
-		if(cv::waitKey(MAX_WAIT_TIME_CAM) == ESC_KEY) //wait for ESCAPE key press for 30ms
-            //break;
-            continue;
+		if(cv::waitKey(MAX_WAIT_TIME_CAM) == ESC_KEY) //wait for ESCAPE key press for a short time period
+            break;
         cv::cvtColor(frame, frame, CV_RGB2GRAY); //conversion to greyscale
-        try
+        #ifdef DEBUG //storing the frames and faces for debugging purposes
+        	cv::imwrite("cache/frames/" + intToStr(i) + ".jpg", frame);
+        #endif
+        try //outputs the normalized face
         {
-        	cv::imshow(STR_NORMALIZATION_SUCCESS, norm->normalize((det->fetchFaceAndEyes(frame)))); //outputs the normalized face
+        	frame = norm->normalize(det->fetchFaceAndEyes(frame));
+        	#ifdef DEBUG
+        		cv::imwrite("cache/faces/" + intToStr(i) + ".jpg", frame);
+        	#endif
+        	cv::imshow(STR_NORMALIZATION_SUCCESS, frame);
         }
         catch(std::exception& e)
 		{
@@ -71,6 +96,10 @@ int main(int argc, const char * argv[])
 		std::cerr << e.what();
 		return -1;
 	}
+
+	#ifdef DEBUG
+		det.setArguments(ARGS_CAM);
+	#endif
 
 	Normalizator norm = Normalizator();
 	FaceData data; //buffer used to send data from detector to normalizator
