@@ -77,8 +77,8 @@ FaceData Detector::fetchFaceAndEyes(cv::Mat image)
 		faceCenter.y += diffHeight;
 		biggestFace.x -= diffWidth; //...as well as the face as a whole
 		biggestFace.y -= diffHeight;
-		biggestFace.width = std::min(diagonal, image.cols); //...or bigger than the size of the image
-		biggestFace.height = std::min(diagonal, image.rows);
+		biggestFace.width = std::min(diagonal, image.cols - biggestFace.x); //...or bigger than the size of the image
+		biggestFace.height = std::min(diagonal, image.rows - biggestFace.y);
 
 		//now we can get rid of the rest of the image since face is all we need
 		image = image(cv::Rect(biggestFace.x, biggestFace.y, biggestFace.width, biggestFace.height)).clone();
