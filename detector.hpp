@@ -26,6 +26,7 @@
 #define RIGHT 1
 #define ARGS_PIC 0
 #define ARGS_CAM 1
+#define ANGLE_NUM 6
 #define HAAR_MIN_FACE_SIZE 75
 #define HAAR_FACE_SEARCH_DIV 10
 #define HAAR_EYE_SEARCH_DIV 10
@@ -53,7 +54,9 @@ class Detector
 		void setArgumentsMan(float scaleFac_, int minNeigh_, int flags_);
 		void setArguments(int flag_);
 		inline cv::Size minFaceSize(int cols, int rows);
-		FaceData fetchFaceAndEyes(cv::Mat image);
+		FaceData fetchFace(cv::Mat image);
+		FaceData findFace(cv::Mat image);
+		std::pair <cv::Point2f, cv::Point2f> fetchEyes(cv::Mat face);
 };
 
 #endif

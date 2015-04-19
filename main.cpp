@@ -56,22 +56,22 @@ void runCamera(Detector * det, Normalizator * norm)
 		if(!capture.read(frame))
 			throw std::runtime_error(STR_CAM_READ_FAILURE);
 		cv::imshow(STR_CAM_WINDOW_TITLE, frame);
-		std::cout << "frames processed: " << i << "; press ESC to exit\n";
-		if(cv::waitKey(MAX_WAIT_TIME_CAM) == ESC_KEY) //wait for ESCAPE key press for a short time period
-            break;
-        cv::cvtColor(frame, frame, CV_RGB2GRAY); //conversion to greyscale
-        #ifdef DEBUG //storing the frames and faces for debugging purposes
-        	cv::imwrite("cache/frames/" + std::to_string(i) + ".jpg", frame);
+		std::cout << "frames processed: " << i << "; press any key to exit\n";
+		if(cv::waitKey(MAX_WAIT_TIME_CAM) != -1) //wait for ESCAPE key press for a short time period
+			return;
+		cv::cvtColor(frame, frame, CV_RGB2GRAY); //conversion to greyscale
+		#ifdef DEBUG //storing the frames and faces for debugging purposes
+			cv::imwrite("cache/frames/" + std::to_string(i) + ".jpg", frame);
         #endif
         try //outputs the normalized face
         {
-        	frame = norm->normalize(det->fetchFaceAndEyes(frame));
+			frame = norm->normalize(det->fetchFace(frame));
         	#ifdef DEBUG
         		cv::imwrite("cache/faces/" + std::to_string(i) + ".jpg", frame);
         	#endif
         	cv::imshow(STR_NORMALIZATION_SUCCESS, frame);
         }
-        catch(std::exception& e)
+		catch(std::exception& e)
 		{
 			std::cerr << e.what();
 			//we do not want our program to stop after a single frame it has not found face in, do we?
@@ -98,7 +98,7 @@ int main(int argc, const char * argv[])
 	}
 
 	#ifdef DEBUG
-		det.setArguments(ARGS_CAM);
+		//det.setArguments(ARGS_CAM);
 	#endif
 	
 	Normalizator norm = Normalizator();
@@ -133,7 +133,7 @@ int main(int argc, const char * argv[])
 	try
 	{
 		data.image = getImage(argument);
-		data = det.fetchFaceAndEyes(data.image);
+		data = det.fetchFace(data.image);
 		showAndSaveImage(norm.normalize(data));
 	}
 	catch(std::exception& e)

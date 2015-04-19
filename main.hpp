@@ -19,7 +19,6 @@
 #define STR_CAM_WINDOW_TITLE "Webcam capture"
 #define MAX_WAIT_TIME 60000
 #define MAX_WAIT_TIME_CAM 30
-#define ESC_KEY 27
 #define SAVING_PATH "face.jpg"
 
 void showAndSaveImage(cv::Mat image);

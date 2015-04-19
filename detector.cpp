@@ -9,6 +9,7 @@ struct cmp
     }
 };
 
+//loading the cascades
 void Detector::init()
 {
 	if(!face_cascade.load(HAAR_FACE_PATH))
@@ -41,10 +42,43 @@ inline cv::Size Detector::minFaceSize(int cols, int rows)
 					std::min(rows / HAAR_FACE_SEARCH_DIV, HAAR_MIN_FACE_SIZE));
 }
 
-//finds faces and eyes in the given image
-FaceData Detector::fetchFaceAndEyes(cv::Mat image)
+//tries to finds by rotating the image by different angles and calling findFace on each
+//NOTE: the bigger the angle the face leans by in the picture, the slower the program
+//will work. That is caused by the order we rotate the face (first no rotation, then
+//starting from the lowest angles both left and right) etc. depending on the ANGLE_NUM 
+//constant we can check more or less of them it will work the slowest if there is no 
+//face in the picture
+FaceData Detector::fetchFace(cv::Mat image)
 {
-	std::vector <cv::Rect> faces, eyes[2], eyeCandidates[2]; //for left and right eyes
+	int angles[] = {0, -45, 45, -90, 90}; //the more angles, the more drastically slow the program
+	//appears to be, thus I only chose those angles, not the whole 360 - degrees circle
+	FaceData data;
+	for(int i = 0; i < sizeof(angles) / sizeof(angles[0]); i++)
+	{
+		cv::Mat trans = cv::getRotationMatrix2D(cv::Point2f(image.cols / 2, image.rows / 2), angles[i], 1.0);
+		cv::Mat temp;
+		cv::warpAffine(image, temp, trans, cv::Size(image.cols, image.rows));
+		try
+		{
+			data = findFace(temp);
+		}
+        catch(std::exception& e)
+		{
+			//we do not want to stop looking after a single rotation found no face
+			if(!strcmp(e.what(), STR_FACE_NFOUND))
+				continue;
+			throw std::runtime_error(e.what());
+		}
+		return data;
+	}
+	throw std::runtime_error(STR_FACE_NFOUND); 
+}
+
+//finds faces in the given image and chooses biggest one for eye search
+FaceData Detector::findFace(cv::Mat image)
+{
+	std::vector <cv::Rect> faces;
+
 	face_cascade.detectMultiScale(image, faces, scaleFac, minNeigh, flags, minFaceSize(image.cols, image.rows));
 
 	//in case we found a face now we need to find the eyes
@@ -56,9 +90,73 @@ FaceData Detector::fetchFaceAndEyes(cv::Mat image)
 			if(faces[i].area() > biggestFace.area())
 				biggestFace = faces[i];
 
-		//we only need to look for eyes in the face rectangle, so we set the ROI
+		//saving the face found
 		cv::Mat face = image(biggestFace);
 
+		//now we should work on a little more than the rectangle that contains face, because after rotation
+		//(e.g. 45 degrees) we might lose a lot of the face in order for the image to remain rectangular
+		//thus we calculate how much more do we need and add it to our face-rectangle (however keeping old
+		//width and height might be useful for rescaling the image in normalizer)
+		int oldWidth = biggestFace.width, oldHeight = biggestFace.height;
+		int diagonal = ceil(sqrt(biggestFace.width * biggestFace.width + biggestFace.height * biggestFace.height));
+		cv::Point2f faceCenter = cv::Point2f(biggestFace.width / 2, biggestFace.height / 2); //center of the face
+		int diffWidth, diffHeight; //how much have we moved the x and y of biggest face (will be needed for adjusting eyes)
+		diffWidth = std::min((diagonal - biggestFace.width) / 2, biggestFace.x); //we cannot allow ourselves to have the coordinates negative...
+		diffHeight = std::min((diagonal - biggestFace.height) / 2, biggestFace.y);
+		biggestFace.x -= diffWidth; //need to adjust the face position to bigger ROI
+		biggestFace.y -= diffHeight;
+		biggestFace.width = std::min(diagonal, image.cols - biggestFace.x); //...or bigger than the size of the image
+		biggestFace.height = std::min(diagonal, image.rows - biggestFace.y);
+
+		//now we can get rid of the rest of the image since face and a little more for rotation purposes is all we need
+		image = image(cv::Rect(biggestFace.x, biggestFace.y, biggestFace.width, biggestFace.height));
+		int angles[] = {0, -10, 10, -20, 20, -30, 30}; //rotation angles for eye searching in the given face
+		int right_angle = 360; //what angle helped us find the eyes
+		std::pair <cv::Point2f, cv::Point2f> eyes;
+		//it is easier to find the eyes in verical faces, thus we try to rotate it by different angles
+		for(int i = 0; i < sizeof(angles) / sizeof(angles[0]); i++)
+		{
+			cv::Mat trans = cv::getRotationMatrix2D(faceCenter, angles[i], 1.0);
+			cv::Mat temp;
+			cv::warpAffine(face, temp, trans, cv::Size(face.cols, face.rows));
+			eyes = fetchEyes(temp);
+
+	 		if(eyes == std::make_pair(cv::Point2f(0., 0.), cv::Point2f(0., 0.)))
+	 			continue;
+	 		else
+	 		{
+	 			right_angle = angles[i];
+	 			break;
+	 		}
+		}
+
+		if(right_angle == 360)
+			throw std::runtime_error(STR_EYES_NFOUND);
+
+		faceCenter.x += diffWidth; //need to adjust the face center position to the bigger ROI
+		faceCenter.y += diffHeight;
+		eyes.first.x += diffWidth; //need to adjust the eyes' position to the bigger ROI
+		eyes.first.y += diffHeight;
+		eyes.second.x += diffWidth;
+		eyes.second.y += diffHeight;
+		
+
+    	if(right_angle) //rotating the bigger ROI by the right angle
+		{
+			cv::Mat trans = cv::getRotationMatrix2D(faceCenter, right_angle, 1.0);
+			cv::warpAffine(image, image, trans, cv::Size(image.cols, image.rows));
+		}
+
+		return FaceData(image, eyes.first, eyes.second, oldWidth, oldHeight, faceCenter);
+	}
+	else
+		throw std::runtime_error(STR_FACE_NFOUND);
+}
+
+//function finds eyes in a given face
+std::pair <cv::Point2f, cv::Point2f> Detector::fetchEyes(cv::Mat face)
+{
+		std::vector <cv::Rect> eyes[2], eyeCandidates[2]; //for left and right eyes
 		//searching for eyes
 		cv::Rect searchArea = cv::Rect(0, 0, face.cols / 2, face.rows);
 		eye_cascade.detectMultiScale(face(searchArea), eyeCandidates[LEFT], scaleFac, minNeigh, flags, 
@@ -66,27 +164,6 @@ FaceData Detector::fetchFaceAndEyes(cv::Mat image)
 		searchArea = cv::Rect(face.cols / 2, 0, face.cols / 2, face.rows);
 		eye_cascade.detectMultiScale(face(searchArea), eyeCandidates[RIGHT], scaleFac, minNeigh, flags, 
 			cv::Size(face.cols / HAAR_EYE_SEARCH_DIV, face.rows / HAAR_EYE_SEARCH_DIV));
-
-		//now we should send to the normalizator a little more than the rectangle that contains face, because after
-		//rotation (e.g. 45 degrees) we might lose a lot of the face in order for the image to remain rectangular
-		//thus, we calculate how much more do we need and add it to our face-rectangle (however keeping old width
-		//and height might be useful for rescaling the image in normalizer)
-		int oldWidth = biggestFace.width, oldHeight = biggestFace.height;
-		int diagonal = ceil(sqrt(biggestFace.width * biggestFace.width + biggestFace.height * biggestFace.height));
-		cv::Point2f faceCenter = cv::Point2f(biggestFace.width / 2, biggestFace.height / 2); //center of the face
-		int diffWidth, diffHeight; //how much have we moved the x and y of biggest face (will be needed for adjusting eyes)
-		diffWidth = std::min((diagonal - biggestFace.width) / 2, biggestFace.x); //we cannot allow ourselves to have the coordinates negative...
-		diffHeight = std::min((diagonal - biggestFace.height) / 2, biggestFace.y);
-		faceCenter.x += diffWidth; //need to adjust the face center position...
-		faceCenter.y += diffHeight;
-		biggestFace.x -= diffWidth; //...as well as the face as a whole
-		biggestFace.y -= diffHeight;
-		biggestFace.width = std::min(diagonal, image.cols - biggestFace.x); //...or bigger than the size of the image
-		biggestFace.height = std::min(diagonal, image.rows - biggestFace.y);
-
-		//now we can get rid of the rest of the image since face is all we need
-		image = image(cv::Rect(biggestFace.x, biggestFace.y, biggestFace.width, biggestFace.height)).clone();
-
 		for(int j = 0; j < 2; j++) //for left and right eyes
 		{ 
 			for(int i = 0; i < eyeCandidates[j].size(); i++)
@@ -99,20 +176,11 @@ FaceData Detector::fetchFaceAndEyes(cv::Mat image)
 					eyeCandidates[j][i].y + eyeCandidates[j][i].height / 2 > face.rows / 2) //in the bottom part of the face
 					continue;
 
+				eyes[j].push_back(eyeCandidates[j][i]);
+
 				#ifdef DEBUG
 					printf("ratio: %f, ", (double) eyeCandidates[j][i].area() / (face.cols * face.rows));
-				#endif
-
-				//need to adjust the eyes' position to the bigger ROI
-				eyeCandidates[j][i].x += diffWidth;
-				eyeCandidates[j][i].y += diffHeight;
-
-				//if we found an eye in the bottom part of the face - theyre probably not eyes
-				if(eyeCandidates[j][i].y < image.rows / 2) //probably an actual eye
-					eyes[j].push_back(eyeCandidates[j][i]);
-
-				#ifdef DEBUG
-					rectangle(image, cv::Point(eyeCandidates[j][i].x, eyeCandidates[j][i].y), 
+					rectangle(face, cv::Point(eyeCandidates[j][i].x, eyeCandidates[j][i].y), 
 							 cv::Point(eyeCandidates[j][i].x + eyeCandidates[j][i].width, eyeCandidates[j][i].y + eyeCandidates[j][i].height),
 							 cv::Scalar(0));
 				#endif
@@ -121,8 +189,8 @@ FaceData Detector::fetchFaceAndEyes(cv::Mat image)
 		
 		#ifdef DEBUG
 			cv::namedWindow("dd", cv::WINDOW_NORMAL);
-	    	cv::imshow("dd", image);
-	   		cv::imwrite("temp.jpg", image);
+	    	cv::imshow("dd", face);
+	   		cv::imwrite("temp.jpg", face);
     		cv::waitKey(0);
     		cv::destroyAllWindows();
     	#endif
@@ -136,15 +204,11 @@ FaceData Detector::fetchFaceAndEyes(cv::Mat image)
 			cv::Point2f leye = cv::Point2f((float) eyes[LEFT][0].x + eyes[LEFT][0].width / 2, (float) eyes[LEFT][0].y + eyes[LEFT][0].height / 2);
 			cv::Point2f reye = cv::Point2f((float) eyes[RIGHT][0].x + eyes[RIGHT][0].width / 2, (float) eyes[RIGHT][0].y + eyes[RIGHT][0].height / 2);
 			#ifdef DEBUG
-				std::cout << "picture size: " << image.cols << "x" << image.rows << "; eye positions: (" << leye.x << ", " << leye.y << "); (" << reye.x << ", " 
-					<< reye.y << "); old size: " << oldWidth << "x" << oldHeight << "; face center: (" << faceCenter.x << ", " << faceCenter.y << ")\n";
+				std::cout << "picture size: " << face.cols << "x" << face.rows << "; eye positions: (" 
+					<< leye.x << ", " << leye.y << "); (" << reye.x << ", " << reye.y << ");\n";
 			#endif
-			return FaceData(image, leye, reye, oldWidth, oldHeight, faceCenter);
+			return std::make_pair(leye, reye);
 		}
 		else
-			throw std::runtime_error(STR_EYES_NFOUND);
-
-	}
-
-	throw std::runtime_error(STR_FACE_NFOUND);
+			return std::make_pair(cv::Point2f(0., 0.), cv::Point2f(0., 0.));
 }

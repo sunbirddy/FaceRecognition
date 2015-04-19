@@ -11,9 +11,10 @@ cv::Mat Normalizator::normalize(FaceData data)
 	//rotation
 	cv::Mat trans = cv::getRotationMatrix2D(data.leye, angle, 1.0);
 	cv::warpAffine(face, face, trans, cv::Size(face.cols, face.rows));
-	
+
 	//cropping image based on the old face coordinates
-	face = face(cv::Rect(data.faceCenter.x - data.faceWidth / 2, data.faceCenter.y - data.faceHeight / 2, data.faceWidth, data.faceHeight)).clone();
+	face = face(cv::Rect(std::max(0, (int) data.faceCenter.x - data.faceWidth / 2), 
+			std::max(0, (int) data.faceCenter.y - data.faceHeight / 2), data.faceWidth, data.faceHeight));
 	cv::resize(face, face, cv::Size(NORMALIZED_WIDTH, NORMALIZED_HEIGHT));
 	return face;
 }

@@ -2,6 +2,7 @@
 #define NORMALIZATOR_HPP
 
 #include "facedata.hpp"
+#include <algorithm>
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 
