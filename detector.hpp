@@ -1,7 +1,7 @@
 #ifndef DETECTOR_HPP
 #define DETECTOR_HPP
 
-//#define DEBUG
+#define DEBUG
 #include "normalizator.hpp"
 #include "facedata.hpp"
 #include <stdexcept>
@@ -22,11 +22,15 @@
 #define STR_NO_EYE_CASC "Could not load cascade file for eyes\n"
 #define STR_FACE_NFOUND "No face found in the picture\n"
 #define STR_EYES_NFOUND "No eyes found in the face\n"
+#define LEFT 0
+#define RIGHT 1
 #define ARGS_PIC 0
 #define ARGS_CAM 1
 #define HAAR_MIN_FACE_SIZE 75
 #define HAAR_FACE_SEARCH_DIV 10
-#define HAAR_EYE_SEARCH_DIV 5
+#define HAAR_EYE_SEARCH_DIV 10
+#define MIN_EYE_FACE_RATIO ((double) 0.02) //minimal ratio between found eyes' and faces' areas
+#define MAX_EYE_FACE_RATIO ((double) 0.1) //maximal ratio of such type
 #define HAAR_SCALE_FAC_PIC 1.1
 #define HAAR_MIN_NEIGH_PIC 3
 #define HAAR_FLAGS_PIC 0

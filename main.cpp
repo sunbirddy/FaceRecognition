@@ -1,5 +1,25 @@
 #include "main.hpp"
 
+#ifdef DEBUG
+	std::string positiveIntToStr(int n)
+	{
+     	std::string tmp, ret;
+     	if(n < 0) 
+     	{
+      		ret = "-";
+      		n = -n;
+     	}
+     	do{
+      		tmp += n % 10 + 48;
+      		n -= n % 10;
+     	}
+     	while(n /= 10);
+     	for(int i = tmp.size()-1; i >= 0; i--)
+      		ret += tmp[i];
+     	return ret;
+	}
+#endif
+
 //shows image in a new window
 void showAndSaveImage(cv::Mat image)
 {
@@ -41,13 +61,13 @@ void runCamera(Detector * det, Normalizator * norm)
             break;
         cv::cvtColor(frame, frame, CV_RGB2GRAY); //conversion to greyscale
         #ifdef DEBUG //storing the frames and faces for debugging purposes
-        	cv::imwrite("cache/frames/" + intToStr(i) + ".jpg", frame);
+        	cv::imwrite("cache/frames/" + std::to_string(i) + ".jpg", frame);
         #endif
         try //outputs the normalized face
         {
         	frame = norm->normalize(det->fetchFaceAndEyes(frame));
         	#ifdef DEBUG
-        		cv::imwrite("cache/faces/" + intToStr(i) + ".jpg", frame);
+        		cv::imwrite("cache/faces/" + std::to_string(i) + ".jpg", frame);
         	#endif
         	cv::imshow(STR_NORMALIZATION_SUCCESS, frame);
         }

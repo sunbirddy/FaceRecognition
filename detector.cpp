@@ -44,7 +44,7 @@ inline cv::Size Detector::minFaceSize(int cols, int rows)
 //finds faces and eyes in the given image
 FaceData Detector::fetchFaceAndEyes(cv::Mat image)
 {
-	std::vector <cv::Rect> faces, eyes, eyeCandidates;
+	std::vector <cv::Rect> faces, eyes[2], eyeCandidates[2]; //for left and right eyes
 	face_cascade.detectMultiScale(image, faces, scaleFac, minNeigh, flags, minFaceSize(image.cols, image.rows));
 
 	//in case we found a face now we need to find the eyes
@@ -60,7 +60,11 @@ FaceData Detector::fetchFaceAndEyes(cv::Mat image)
 		cv::Mat face = image(biggestFace);
 
 		//searching for eyes
-		eye_cascade.detectMultiScale(face, eyeCandidates, scaleFac, minNeigh, flags, 
+		cv::Rect searchArea = cv::Rect(0, 0, face.cols / 2, face.rows);
+		eye_cascade.detectMultiScale(face(searchArea), eyeCandidates[LEFT], scaleFac, minNeigh, flags, 
+			cv::Size(face.cols / HAAR_EYE_SEARCH_DIV, face.rows / HAAR_EYE_SEARCH_DIV));
+		searchArea = cv::Rect(face.cols / 2, 0, face.cols / 2, face.rows);
+		eye_cascade.detectMultiScale(face(searchArea), eyeCandidates[RIGHT], scaleFac, minNeigh, flags, 
 			cv::Size(face.cols / HAAR_EYE_SEARCH_DIV, face.rows / HAAR_EYE_SEARCH_DIV));
 
 		//now we should send to the normalizator a little more than the rectangle that contains face, because after
@@ -83,21 +87,36 @@ FaceData Detector::fetchFaceAndEyes(cv::Mat image)
 		//now we can get rid of the rest of the image since face is all we need
 		image = image(cv::Rect(biggestFace.x, biggestFace.y, biggestFace.width, biggestFace.height)).clone();
 
-		for(int i = 0; i < eyeCandidates.size(); i++)
-		{
-			//need to adjust the eyes' position to the bigger ROI
-			eyeCandidates[i].x += diffWidth;
-			eyeCandidates[i].y += diffHeight;
+		for(int j = 0; j < 2; j++) //for left and right eyes
+		{ 
+			for(int i = 0; i < eyeCandidates[j].size(); i++)
+			{
+				if(j == RIGHT) //need to adjust the rectangle to the whole face (not half of it)
+					eyeCandidates[j][i].x += face.cols / 2;
+				//we reject the candidate if the eye is:
+				if((double) eyeCandidates[j][i].area() / (face.cols * face.rows) > MAX_EYE_FACE_RATIO || //too big
+					(double) eyeCandidates[j][i].area() / (face.cols * face.rows) < MIN_EYE_FACE_RATIO || //too small
+					eyeCandidates[j][i].y + eyeCandidates[j][i].height / 2 > face.rows / 2) //in the bottom part of the face
+					continue;
 
-			//if we found an eye in the bottom part of the face - theyre probably not eyes
-			if(eyeCandidates[i].y < image.rows / 2) //probably an actual eye
-				eyes.push_back(eyeCandidates[i]);
+				#ifdef DEBUG
+					printf("ratio: %f, ", (double) eyeCandidates[j][i].area() / (face.cols * face.rows));
+				#endif
 
-			#ifdef DEBUG
-				rectangle(image, cv::Point(eyeCandidates[i].x, eyeCandidates[i].y), 
-						 cv::Point(eyeCandidates[i].x + eyeCandidates[i].width, eyeCandidates[i].y + eyeCandidates[i].height),
-						 cv::Scalar(0));
-			#endif
+				//need to adjust the eyes' position to the bigger ROI
+				eyeCandidates[j][i].x += diffWidth;
+				eyeCandidates[j][i].y += diffHeight;
+
+				//if we found an eye in the bottom part of the face - theyre probably not eyes
+				if(eyeCandidates[j][i].y < image.rows / 2) //probably an actual eye
+					eyes[j].push_back(eyeCandidates[j][i]);
+
+				#ifdef DEBUG
+					rectangle(image, cv::Point(eyeCandidates[j][i].x, eyeCandidates[j][i].y), 
+							 cv::Point(eyeCandidates[j][i].x + eyeCandidates[j][i].width, eyeCandidates[j][i].y + eyeCandidates[j][i].height),
+							 cv::Scalar(0));
+				#endif
+			}
 		}
 		
 		#ifdef DEBUG
@@ -108,35 +127,19 @@ FaceData Detector::fetchFaceAndEyes(cv::Mat image)
     		cv::destroyAllWindows();
     	#endif
 
-    	std::sort(eyes.begin(), eyes.end(), cmp()); //sorting diminishingly
+    	std::sort(eyes[LEFT].begin(), eyes[LEFT].end(), cmp()); //sorting diminishingly
+    	std::sort(eyes[RIGHT].begin(), eyes[RIGHT].end(), cmp());
 
-		if(eyes.size() > 1) //we need at least two eyes, take the two biggest ones
+		if(eyes[LEFT].size() && eyes[RIGHT].size()) //we need at least one left and right eye
 		{
+			 //finding the middle points of the eyes
+			cv::Point2f leye = cv::Point2f((float) eyes[LEFT][0].x + eyes[LEFT][0].width / 2, (float) eyes[LEFT][0].y + eyes[LEFT][0].height / 2);
+			cv::Point2f reye = cv::Point2f((float) eyes[RIGHT][0].x + eyes[RIGHT][0].width / 2, (float) eyes[RIGHT][0].y + eyes[RIGHT][0].height / 2);
 			#ifdef DEBUG
-				std::cout << eyes[0].area() << " " << eyes[1].area() << " " << eyes[2].area() << " " << eyes[eyes.size()-1].area() << "\n";
+				std::cout << "picture size: " << image.cols << "x" << image.rows << "; eye positions: (" << leye.x << ", " << leye.y << "); (" << reye.x << ", " 
+					<< reye.y << "); old size: " << oldWidth << "x" << oldHeight << "; face center: (" << faceCenter.x << ", " << faceCenter.y << ")\n";
 			#endif
-
-			cv::Point2f eye1 = cv::Point2f((float) eyes[0].x + eyes[0].width / 2, (float) eyes[0].y + eyes[0].height / 2); //middle of the first eye
-			cv::Point2f eye2 = cv::Point2f(0., 0.);
-
-			//searchig for the other eye (should be on the other half of the face)
-			for(int i = 1; i < eyes.size(); i++)
-			{
-				if((eyes[i].x - image.cols / 2) * (eyes[0].x - image.cols / 2) < 0) //checking if the eyes are on opposite sides
-				{
-					eye2 = cv::Point2f((float) eyes[i].x + eyes[i].width / 2, (float) eyes[i].y + eyes[i].height / 2); //middle of the second eye
-					break;
-				}
-			}
-
-			if(eye2.x == 0. && eye2.y == 0.) //second eye not found
-				throw std::runtime_error(STR_EYES_NFOUND);
-
-			#ifdef DEBUG
-				std::cout << "picture size: " << image.cols << "x" << image.rows << "; eye positions: (" << eye1.x << ", " << eye1.y << "); (" << eye2.x << ", " << eye2.y <<
-					"); old size: " << oldWidth << "x" << oldHeight << "; face center: (" << faceCenter.x << ", " << faceCenter.y << ")\n";
-			#endif
-			return FaceData(image, eye1, eye2, oldWidth, oldHeight, faceCenter);
+			return FaceData(image, leye, reye, oldWidth, oldHeight, faceCenter);
 		}
 		else
 			throw std::runtime_error(STR_EYES_NFOUND);
@@ -145,11 +148,3 @@ FaceData Detector::fetchFaceAndEyes(cv::Mat image)
 
 	throw std::runtime_error(STR_FACE_NFOUND);
 }
-
-/*TODO: opens webcam window and finds the face on a real-time basis
-void Detector::runCamera()
-{
-	cv::namedWindow("Camera_Output", 1);    //Create window
-    //cv::Capture capture = cv::captureFromCAM(CV_CAP_ANY);
-}
-*/
