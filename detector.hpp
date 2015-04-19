@@ -1,7 +1,7 @@
 #ifndef DETECTOR_HPP
 #define DETECTOR_HPP
 
-#define DEBUG
+//#define DEBUG
 #include "normalizator.hpp"
 #include "facedata.hpp"
 #include <stdexcept>
