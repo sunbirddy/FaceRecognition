@@ -50,8 +50,8 @@ inline cv::Size Detector::minFaceSize(int cols, int rows)
 //face in the picture
 FaceData Detector::fetchFace(cv::Mat image)
 {
-	int angles[] = {0, -45, 45, -90, 90}; //the more angles, the more drastically slow the program
-	//appears to be, thus I only chose those angles, not the whole 360 - degrees circle
+	int angles[] = {0, -35, 35, 70, 70}; //the more angles, the more drastically slow the program
+	//appears to be, thus we only chose those angles, not the whole 360 - degrees circle
 	FaceData data;
 	for(int i = 0; i < sizeof(angles) / sizeof(angles[0]); i++)
 	{
@@ -95,18 +95,18 @@ FaceData Detector::findFace(cv::Mat image)
 
 		//now we should work on a little more than the rectangle that contains face, because after rotation
 		//(e.g. 45 degrees) we might lose a lot of the face in order for the image to remain rectangular
-		//thus we calculate how much more do we need and add it to our face-rectangle (however keeping old
-		//width and height might be useful for rescaling the image in normalizer)
+		//thus we take twice the size (per side) image our face is (as if 2Wx2H instead of WxH),
+		//however keeping old width and height might be useful for rescaling the image in normalizer
 		int oldWidth = biggestFace.width, oldHeight = biggestFace.height;
-		int diagonal = ceil(sqrt(biggestFace.width * biggestFace.width + biggestFace.height * biggestFace.height));
+		//int diagonal = ceil(sqrt(biggestFace.width * biggestFace.width + biggestFace.height * biggestFace.height));
 		cv::Point2f faceCenter = cv::Point2f(biggestFace.width / 2, biggestFace.height / 2); //center of the face
 		int diffWidth, diffHeight; //how much have we moved the x and y of biggest face (will be needed for adjusting eyes)
-		diffWidth = std::min((diagonal - biggestFace.width) / 2, biggestFace.x); //we cannot allow ourselves to have the coordinates negative...
-		diffHeight = std::min((diagonal - biggestFace.height) / 2, biggestFace.y);
+		diffWidth = std::min(oldWidth, biggestFace.x); //we cannot allow ourselves to have the coordinates negative...
+		diffHeight = std::min(oldHeight, biggestFace.y);
 		biggestFace.x -= diffWidth; //need to adjust the face position to bigger ROI
 		biggestFace.y -= diffHeight;
-		biggestFace.width = std::min(diagonal, image.cols - biggestFace.x); //...or bigger than the size of the image
-		biggestFace.height = std::min(diagonal, image.rows - biggestFace.y);
+		biggestFace.width = std::min(2 * oldWidth, image.cols - biggestFace.x); //...or bigger than the size of the image
+		biggestFace.height = std::min(2 * oldHeight, image.rows - biggestFace.y);
 
 		//now we can get rid of the rest of the image since face and a little more for rotation purposes is all we need
 		image = image(cv::Rect(biggestFace.x, biggestFace.y, biggestFace.width, biggestFace.height));
